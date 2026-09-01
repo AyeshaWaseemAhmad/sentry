@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import type {Dispatch, SetStateAction} from 'react';
+import type {ComponentType, Dispatch, ReactNode, SetStateAction} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -28,6 +28,7 @@ import {
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
+import type {StackTraceSectionRenderer} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -52,6 +53,9 @@ import {
 
 interface IssueStackTraceBaseProps {
   event: Event;
+  children?: StackTraceSectionRenderer;
+  collapseAll?: boolean;
+  frameActionsComponent?: ComponentType<{isHovering: boolean}>;
   group?: Group;
   projectSlug?: Project['slug'];
 }
@@ -75,7 +79,7 @@ type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
 const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {event, group, projectSlug, collapseAll, children, frameActionsComponent} = props;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
@@ -132,7 +136,11 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
         group={group}
         projectSlug={projectSlug}
         isStandalone={isStandalone}
-      />
+        collapseAll={collapseAll}
+        frameActionsComponent={frameActionsComponent}
+      >
+        {children}
+      </IssueStackTraceContent>
     </StackTraceViewStateProvider>
   );
 }
@@ -161,12 +169,37 @@ function PersistDisplayOptions({
   return null;
 }
 
+function IssueStackTraceSection({
+  children,
+  sectionKey,
+  actions,
+  renderSection,
+}: {
+  actions: ReactNode;
+  children: ReactNode;
+  sectionKey: SectionKey.EXCEPTION | SectionKey.STACKTRACE;
+  renderSection?: StackTraceSectionRenderer;
+}) {
+  const title = t('Stack Trace');
+  if (renderSection) {
+    return renderSection({title, actions, content: children});
+  }
+  return (
+    <FoldSection sectionKey={sectionKey} title={title} actions={actions}>
+      {children}
+    </FoldSection>
+  );
+}
+
 function IssueStackTraceContent({
   event,
   values,
   group,
   projectSlug,
   isStandalone,
+  collapseAll = false,
+  children: renderSection,
+  frameActionsComponent = IssueFrameActions,
 }: IssueStackTraceBaseProps & {isStandalone: boolean; values: ExceptionValue[]}) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
   const organization = useOrganization();
@@ -217,7 +250,11 @@ function IssueStackTraceContent({
 
   if (view === 'raw') {
     return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <IssueStackTraceSection
+        sectionKey={sectionKey}
+        actions={sectionActions}
+        renderSection={renderSection}
+      >
         <Stack gap="lg">
           <Panel>
             <RawStackTraceText>
@@ -235,7 +272,7 @@ function IssueStackTraceContent({
             projectSlug={projectSlug}
           />
         </Stack>
-      </FoldSection>
+      </IssueStackTraceSection>
     );
   }
 
@@ -247,7 +284,11 @@ function IssueStackTraceContent({
     const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
 
     return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <IssueStackTraceSection
+        sectionKey={sectionKey}
+        actions={sectionActions}
+        renderSection={renderSection}
+      >
         <Stack gap="lg">
           <Stack gap="sm">
             {hasExceptionInfo && (
@@ -269,6 +310,7 @@ function IssueStackTraceContent({
             </ErrorBoundary>
           )}
           <StackTraceProvider
+            collapseAll={collapseAll}
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
             hasScmSourceContext={hasScmSourceContext}
@@ -278,7 +320,7 @@ function IssueStackTraceContent({
           >
             <StackTraceFrames
               frameContextComponent={IssueStackTraceFrameContext}
-              frameActionsComponent={IssueFrameActions}
+              frameActionsComponent={frameActionsComponent}
             />
           </StackTraceProvider>
           <IssueStackTraceSuspectCommits
@@ -287,12 +329,16 @@ function IssueStackTraceContent({
             projectSlug={projectSlug}
           />
         </Stack>
-      </FoldSection>
+      </IssueStackTraceSection>
     );
   }
 
   return (
-    <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
+    <IssueStackTraceSection
+      sectionKey={sectionKey}
+      actions={sectionActions}
+      renderSection={renderSection}
+    >
       <Stack gap="lg">
         <Text variant="muted">
           {tn(
@@ -355,6 +401,7 @@ function IssueStackTraceContent({
                     </ErrorBoundary>
                   ) : null}
                   <StackTraceProvider
+                    collapseAll={collapseAll}
                     exceptionIndex={exc.exceptionIndex}
                     event={event}
                     hasScmSourceContext={hasScmSourceContext}
@@ -364,7 +411,7 @@ function IssueStackTraceContent({
                   >
                     <StackTraceFrames
                       frameContextComponent={IssueStackTraceFrameContext}
-                      frameActionsComponent={IssueFrameActions}
+                      frameActionsComponent={frameActionsComponent}
                     />
                   </StackTraceProvider>
                 </Stack>
@@ -378,7 +425,7 @@ function IssueStackTraceContent({
           projectSlug={projectSlug}
         />
       </Stack>
-    </FoldSection>
+    </IssueStackTraceSection>
   );
 }
 

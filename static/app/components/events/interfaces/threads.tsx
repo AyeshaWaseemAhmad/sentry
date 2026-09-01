@@ -20,6 +20,7 @@ import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSect
 import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import type {StackTraceSectionRenderer} from 'sentry/components/stackTrace/types';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   IconChevron,
@@ -56,6 +57,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  renderSection?: StackTraceSectionRenderer;
 };
 
 function getIntendedStackView(
@@ -169,7 +171,14 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
+export function Threads({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+  renderSection,
+}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -252,7 +261,10 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                 <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
                   <ButtonBar>
                     <Button
-                      tooltipProps={{title: t('Previous Thread'), delay: 1000}}
+                      tooltipProps={{
+                        title: t('Previous Thread'),
+                        delay: 1000,
+                      }}
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous Thread')}
                       size="xs"
@@ -317,6 +329,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         }
       >
         <TraceEventDataSection
+          renderSection={renderSection}
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
@@ -389,17 +402,23 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     </Fragment>
   );
 
-  // If there is only one thread, we expect the stacktrace to wrap itself in a section
-  return hasMoreThanOneThread ? (
+  if (!hasMoreThanOneThread) {
+    return threadComponent;
+  }
+
+  const title = tn('Stack Trace', 'Stack Traces', threads.length);
+  const content = <Stack gap="xl">{threadComponent}</Stack>;
+
+  return renderSection ? (
+    renderSection({title, content})
+  ) : (
     <FoldSection
       sectionKey={SectionKey.STACKTRACE}
-      title={tn('Stack Trace', 'Stack Traces', threads.length)}
+      title={title}
       disableCollapsePersistence
     >
-      <Stack gap="xl">{threadComponent}</Stack>
+      {content}
     </FoldSection>
-  ) : (
-    threadComponent
   );
 }
 

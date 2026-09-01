@@ -10,6 +10,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
+import type {StackTraceSectionRenderer} from 'sentry/components/stackTrace/types';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
@@ -52,6 +53,7 @@ type Props = {
   type: string;
   activeThreadId?: number;
   isNestedSection?: boolean;
+  renderSection?: StackTraceSectionRenderer;
 };
 
 export function TraceEventDataSection({
@@ -70,6 +72,7 @@ export function TraceEventDataSection({
   hasAbsoluteAddresses,
   isNestedSection = false,
   activeThreadId,
+  renderSection,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -559,6 +562,10 @@ export function TraceEventDataSection({
         {children}
       </InlineThreadSection>
     );
+  }
+
+  if (renderSection) {
+    return renderSection({title, actions, content: children});
   }
 
   return (

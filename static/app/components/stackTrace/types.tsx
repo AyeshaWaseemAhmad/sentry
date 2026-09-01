@@ -7,6 +7,12 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 
 export type StackTraceView = 'app' | 'full' | 'raw';
 
+export type StackTraceSectionRenderer = (section: {
+  content: ReactNode;
+  title: ReactNode;
+  actions?: ReactNode;
+}) => ReactNode;
+
 export interface StackTraceViewState {
   hasMinifiedStacktrace: boolean;
   isMinified: boolean;

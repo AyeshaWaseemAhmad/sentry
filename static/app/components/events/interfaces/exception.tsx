@@ -4,6 +4,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
+import type {StackTraceSectionRenderer} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -21,6 +22,7 @@ type Props = {
   group: Group | undefined;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  renderSection?: StackTraceSectionRenderer;
 };
 
 export function Exception({
@@ -29,6 +31,7 @@ export function Exception({
   projectSlug,
   group,
   groupingCurrentLevel,
+  renderSection,
 }: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
   // in case there are threads in the event data, we don't render the
@@ -58,6 +61,7 @@ export function Exception({
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
+        renderSection={renderSection}
         title={t('Stack Trace')}
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}

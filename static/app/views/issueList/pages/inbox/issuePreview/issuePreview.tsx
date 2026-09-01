@@ -9,6 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
+import {EventStackTrace} from 'sentry/components/events/eventStackTrace';
 import {
   LinkedPullRequests,
   useLinkedPullRequests,
@@ -16,6 +17,7 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -40,6 +42,7 @@ import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts'
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -57,6 +60,10 @@ import {
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
+
+function StackTraceFrameActions() {
+  return <IssueFrameActions isHovering />;
+}
 
 interface IssuePreviewProps {
   groupId: string;
@@ -160,6 +167,11 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const {data: event, isLoading: isEventLoading} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'recommended',
+    options: {enabled: !disableActions},
+  });
   const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
@@ -254,7 +266,9 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
+      {previewSeer.state === 'loading' ||
+      linkedPullRequests.isPending ||
+      isEventLoading ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
@@ -276,6 +290,38 @@ function IssuePreviewContent() {
             project={project}
             previewSeer={previewSeer}
           />
+          {event && (
+            <Container key={event.id}>
+              <ErrorBoundary mini>
+                <EventStackTrace
+                  event={event}
+                  group={group}
+                  projectSlug={project.slug}
+                  frameActionsComponent={StackTraceFrameActions}
+                  collapseAll={
+                    !!(group.derivedData?.hasOpenFixPr || group.derivedData?.hasRootCause)
+                  }
+                >
+                  {({title, actions, content}) => (
+                    <Stack
+                      as="section"
+                      gap="lg"
+                      role="region"
+                      aria-label={t('Stack Trace')}
+                    >
+                      <Flex align="center" justify="between" gap="md">
+                        <Heading as="h3" size="md">
+                          {title}
+                        </Heading>
+                        {actions}
+                      </Flex>
+                      {content}
+                    </Stack>
+                  )}
+                </EventStackTrace>
+              </ErrorBoundary>
+            </Container>
+          )}
           <Container>
             <ErrorBoundary mini>
               <FoldSection

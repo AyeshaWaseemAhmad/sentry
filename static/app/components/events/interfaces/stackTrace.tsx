@@ -3,6 +3,7 @@ import {
   useStacktraceContext,
 } from 'sentry/components/events/interfaces/stackTraceContext';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
+import type {StackTraceSectionRenderer} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -19,6 +20,7 @@ type Props = {
   event: Event;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  renderSection?: StackTraceSectionRenderer;
 };
 
 function StackTraceContentWrapper({
@@ -49,7 +51,13 @@ function StackTraceContentWrapper({
   );
 }
 
-export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Props) {
+export function StackTrace({
+  projectSlug,
+  event,
+  data,
+  groupingCurrentLevel,
+  renderSection,
+}: Props) {
   function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
@@ -68,6 +76,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
+        renderSection={renderSection}
         type={EntryType.STACKTRACE}
         projectSlug={projectSlug}
         event={event}
