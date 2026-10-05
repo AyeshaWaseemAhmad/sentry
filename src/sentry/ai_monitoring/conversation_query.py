@@ -69,8 +69,11 @@ def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) 
     For example, `conversation.totalCost:>10` becomes
     `sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):>10`.
     """
-    expression, _ = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
-    query = condition.text.replace(key.text, expression, 1)
+    expression, alias = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
+    is_duration = alias == "duration"
+    # Duration filters parse as milliseconds; elapsed_if preserves timestamp's native seconds.
+    parsed_expression = "sum(span.duration)" if is_duration else expression
+    query = condition.text.replace(key.text, parsed_expression, 1)
     terms = resolver.parse_search_query(query)
     if len(terms) != 1 or not isinstance(terms[0], AggregateFilter):
         raise InvalidSearchQuery(f"Invalid conversation aggregate filter: {condition.text}")
@@ -78,6 +81,8 @@ def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) 
     value = term.value.raw_value
     if not isinstance(value, (int, float)) or not isfinite(value):
         raise InvalidSearchQuery(f"Expected a finite numeric aggregate value: {condition.text}")
+    if is_duration:
+        return f"{expression}:{term.operator}{value / 1000}"
     return term.to_query_string()
 
 

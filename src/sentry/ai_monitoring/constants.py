@@ -4,10 +4,7 @@ from sentry.search.events.fields import get_function_alias
 AI_CONVERSATIONS_FIELDS = {
     "conversation.conversationId": ("gen_ai.conversation.id", "gen_ai.conversation.id"),
     "conversation.age": ("max(timestamp)", "max(timestamp)"),
-    "conversation.duration": (
-        "sum_if(`has:gen_ai.operation.type`,span.duration)",
-        "duration",
-    ),
+    "conversation.duration": ("elapsed_if(`has:gen_ai.operation.type`,timestamp)", "duration"),
     "conversation.errors": ("failure_count()", "errors"),
     "conversation.generationDuration": CONVERSATION_AGGREGATE_DEFINITIONS["generationDuration"],
     "conversation.inputTokens": CONVERSATION_AGGREGATE_DEFINITIONS["inputTokens"],
