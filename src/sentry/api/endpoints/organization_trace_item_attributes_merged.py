@@ -81,8 +81,20 @@ class OrganizationTraceItemAttributesMergedEndpointSerializer(serializers.Serial
         source="attribute_type",
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
+    search = serializers.CharField(required=False, allow_blank=True)
     expand = serializers.MultipleChoiceField(choices=["context"], required=False)
     sort = serializers.ChoiceField(choices=SORT_CHOICES, required=False, default="name")
+
+
+def search_merged_attributes(
+    attributes: list[MergedTraceItemAttribute], search: str
+) -> list[MergedTraceItemAttribute]:
+    needle = search.lower()
+    return [
+        attribute
+        for attribute in attributes
+        if needle in attribute["name"].lower() or needle in _brief(attribute).lower()
+    ]
 
 
 def sort_merged_attributes(
@@ -171,7 +183,9 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
         )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
-        include_context = "context" in serialized.get("expand", set())
+        search = serialized.get("search", "")
+        expand_context = "context" in serialized.get("expand", set())
+        include_context = expand_context or bool(search)
         include_custom_context = include_context and features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
@@ -230,9 +244,13 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
                     attributes, organization, SupportedTraceItemType(dataset), project_ids
                 )
 
-        merged = sort_merged_attributes(
-            merge_attributes_across_datasets(attributes_by_dataset), serialized["sort"]
-        )
+        merged = merge_attributes_across_datasets(attributes_by_dataset)
+        if search:
+            merged = search_merged_attributes(merged, search)
+        if not expand_context:
+            for attribute in merged:
+                attribute.pop("context", None)
+        merged = sort_merged_attributes(merged, serialized["sort"])
 
         response = self.paginate(
             request=request,
