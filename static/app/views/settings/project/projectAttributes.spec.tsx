@@ -119,6 +119,36 @@ describe('ProjectAttributes', () => {
     );
   });
 
+  it('shows the current page out of the total pages when results are paginated', async () => {
+    MockApiClient.addMockResponse({
+      url: attributesEndpoint,
+      body: [
+        {
+          name: 'cart.id',
+          attributeType: 'string',
+          attributeSource: {source_type: 'user'},
+          datasets: ['spans'],
+          context: {},
+        },
+      ],
+      headers: {
+        'X-Hits': '60',
+        Link: '<http://localhost/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <http://localhost/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
+      },
+    });
+
+    render(<ProjectAttributes />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {pathname, query: {cursor: '0:25:0'}},
+      },
+    });
+
+    expect(await screen.findByText('Page 2 of 3')).toBeInTheDocument();
+  });
+
   it('hides the page when the feature is disabled', () => {
     const {organization: organizationWithoutFeature} = initializeOrg();
     const request = MockApiClient.addMockResponse({

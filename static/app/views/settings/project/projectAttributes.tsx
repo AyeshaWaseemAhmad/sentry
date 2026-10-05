@@ -12,12 +12,15 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import {IconSentry} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseCursor} from 'sentry/utils/cursor';
+import {FieldValueType} from 'sentry/utils/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -33,6 +36,13 @@ interface Attribute {
     isDeprecated?: boolean;
   };
 }
+
+const ATTRIBUTE_VALUE_TYPES: Record<Attribute['attributeType'], FieldValueType> = {
+  string: FieldValueType.STRING,
+  number: FieldValueType.NUMBER,
+  boolean: FieldValueType.BOOLEAN,
+  array: FieldValueType.ARRAY,
+};
 
 const ATTRIBUTES_PER_PAGE = 25;
 const ATTRIBUTES_STATS_PERIOD = '14d';
@@ -100,6 +110,10 @@ function ProjectAttributesSettings() {
   });
 
   const attributes = data?.json;
+  const totalHits = Number(data?.headers['X-Hits'] ?? 0);
+  const totalPages = Math.ceil(totalHits / ATTRIBUTES_PER_PAGE);
+  const currentPage =
+    Math.floor((parseCursor(cursor)?.offset ?? 0) / ATTRIBUTES_PER_PAGE) + 1;
 
   return (
     <SentryDocumentTitle title={t('Attributes')} projectSlug={project.slug}>
@@ -141,7 +155,14 @@ function ProjectAttributesSettings() {
             />
           ))}
         </SimpleTable>
-        <Pagination pageLinks={data?.headers.Link} />
+        <Stack align="end" gap="sm">
+          {totalPages > 0 && (
+            <Text variant="muted" size="sm">
+              {tct('Page [currentPage] of [totalPages]', {currentPage, totalPages})}
+            </Text>
+          )}
+          <Pagination pageLinks={data?.headers.Link} />
+        </Stack>
       </Stack>
     </SentryDocumentTitle>
   );
@@ -187,14 +208,16 @@ function AttributeRow({attribute}: {attribute: Attribute}) {
             {attribute.name}
           </Text>
           {attribute.attributeSource.source_type === 'sentry' && (
-            <Tooltip title={t('Added by Sentry')}>
+            <Tooltip title={t('Added by Sentry')} skipWrapper>
               <IconSentry size="xs" aria-label={t('Added by Sentry')} />
             </Tooltip>
           )}
           {context?.isDeprecated && <Tag variant="warning">{t('Deprecated')}</Tag>}
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell>{attribute.attributeType}</SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <TypeBadge valueType={ATTRIBUTE_VALUE_TYPES[attribute.attributeType]} />
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Flex gap="xs" wrap="wrap">
           {attribute.datasets.map(dataset => (
