@@ -522,6 +522,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/projectTags')),
     },
     {
+      path: 'attributes/',
+      name: t('Attributes'),
+      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
       path: 'environments/',
       name: t('Environments'),
       component: make(() => import('sentry/views/settings/project/projectEnvironments')),
