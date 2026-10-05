@@ -35,6 +35,7 @@ interface Attribute {
 }
 
 const ATTRIBUTES_PER_PAGE = 25;
+const ATTRIBUTES_STATS_PERIOD = '14d';
 
 const DATASET_LABELS: Record<AttributeDataset, string> = {
   spans: t('Spans'),
@@ -89,6 +90,7 @@ function ProjectAttributesSettings() {
           per_page: ATTRIBUTES_PER_PAGE,
           project: [project.id],
           sort: encodeSort(sort),
+          statsPeriod: ATTRIBUTES_STATS_PERIOD,
         },
         staleTime: 0,
       }
@@ -103,7 +105,9 @@ function ProjectAttributesSettings() {
     <SentryDocumentTitle title={t('Attributes')} projectSlug={project.slug}>
       <SettingsPageHeader
         title={t('Attributes')}
-        subtitle={t('Browse the attributes sent with your spans, logs, and metrics.')}
+        subtitle={t(
+          'Browse the attributes sent with your spans, logs, and metrics in the last 14 days.'
+        )}
       />
       <Stack gap="md">
         <SimpleTable

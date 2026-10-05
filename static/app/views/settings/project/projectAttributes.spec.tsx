@@ -113,6 +113,7 @@ describe('ProjectAttributes', () => {
           expand: 'context',
           project: [project.id],
           sort: '-type',
+          statsPeriod: '14d',
         }),
       })
     );
