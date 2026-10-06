@@ -156,7 +156,7 @@ function ProjectAttributesSettings() {
             />
           ))}
         </SimpleTable>
-        <Stack align="end" gap="sm">
+        <Stack align="end" gap="sm" paddingTop="md">
           {totalPages > 0 && (
             <Text variant="muted" size="sm">
               {tct('Page [currentPage] of [totalPages]', {currentPage, totalPages})}
