@@ -23,11 +23,10 @@ interface EventStackTraceProps {
   projectSlug: Project['slug'];
 }
 
-export function EventStackTrace({
+export function useEventStackTrace({
   event,
   group,
-  projectSlug,
-}: EventStackTraceProps) {
+}: Pick<EventStackTraceProps, 'event' | 'group'>) {
   const shouldUseNewStackTrace =
     // New stack trace is currently only non-native platforms.
     !isNativePlatform(event.platform);
@@ -42,6 +41,24 @@ export function EventStackTrace({
     mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
   const groupingCurrentLevel = group?.metadata?.current_level;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+
+  return {
+    eventEntries,
+    shouldUseNewStackTrace,
+    hangProfileData,
+    groupingCurrentLevel,
+    issueTypeConfig,
+  };
+}
+
+export function EventStackTrace({event, group, projectSlug}: EventStackTraceProps) {
+  const {
+    eventEntries,
+    shouldUseNewStackTrace,
+    hangProfileData,
+    groupingCurrentLevel,
+    issueTypeConfig,
+  } = useEventStackTrace({event, group});
 
   if (hangProfileData) {
     return <MetricKitHangProfileSection data={hangProfileData} />;
