@@ -17,7 +17,6 @@ import type {
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
@@ -26,6 +25,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {encodeSort} from 'sentry/utils/queryString';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -548,7 +548,10 @@ export function useSpansTableQuery(
 
       if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
-          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
+          encodeSort({
+            field: SpanFields.IS_STARRED_TRANSACTION,
+            kind: 'desc',
+          }),
           ...existingSort,
         ];
       }

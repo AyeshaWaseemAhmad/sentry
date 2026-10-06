@@ -9,35 +9,40 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {FieldValueType} from 'sentry/utils/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import type {
+  TraceItemAttribute,
+  TraceItemAttributeType,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type AttributeDataset = 'spans' | 'logs' | 'tracemetrics';
 
-interface Attribute {
-  attributeSource: {source_type: 'sentry' | 'user'};
-  attributeType: 'string' | 'number' | 'boolean' | 'array';
+interface Attribute extends Pick<
+  TraceItemAttribute,
+  'attributeSource' | 'attributeType' | 'name'
+> {
   datasets: AttributeDataset[];
-  name: string;
   context?: {
     brief?: string;
     isDeprecated?: boolean;
   };
 }
 
-const ATTRIBUTE_VALUE_TYPES: Record<Attribute['attributeType'], FieldValueType> = {
+const ATTRIBUTE_VALUE_TYPES: Record<TraceItemAttributeType, FieldValueType> = {
   string: FieldValueType.STRING,
   number: FieldValueType.NUMBER,
   boolean: FieldValueType.BOOLEAN,
@@ -57,12 +62,7 @@ const SORT_FIELDS = ['name', 'type', 'datasets', 'description'] as const;
 
 type SortField = (typeof SORT_FIELDS)[number];
 
-interface Sort {
-  direction: SortDirection;
-  field: SortField;
-}
-
-const DEFAULT_SORT: Sort = {field: 'name', direction: 'asc'};
+const DEFAULT_SORT: Sort = {field: 'name', kind: 'asc'};
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(200px, 2fr)'},
@@ -71,23 +71,16 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'description', width: 'minmax(200px, 3fr)'},
 ];
 
-function decodeSort(value: string | undefined): Sort {
-  const direction = value?.startsWith('-') ? 'desc' : 'asc';
-  const field = SORT_FIELDS.find(sortField => sortField === value?.replace(/^-/, ''));
-  return field ? {field, direction} : DEFAULT_SORT;
-}
-
-function encodeSort({field, direction}: Sort) {
-  return direction === 'desc' ? `-${field}` : field;
-}
-
 function ProjectAttributesSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
 
   const cursor = decodeScalar(location.query.cursor);
-  const sort = decodeSort(decodeScalar(location.query.sort));
+  const sort =
+    decodeSorts(location.query.sort).find(({field}) =>
+      SORT_FIELDS.some(sortField => sortField === field)
+    ) ?? DEFAULT_SORT;
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<Attribute[]>()(
@@ -175,21 +168,15 @@ function SortableHeaderCell({
   sort: Sort;
 }) {
   const location = useLocation();
-  const isActive = sort.field === field;
-  const nextSort: Sort = {
-    field,
-    direction: isActive && sort.direction === 'asc' ? 'desc' : 'asc',
-  };
-
   return (
     <SimpleTable.HeaderCell
-      sort={isActive ? sort.direction : undefined}
+      sort={sort.field === field ? sort.kind : undefined}
       to={{
         ...location,
         query: {
           ...location.query,
           cursor: undefined,
-          sort: encodeSort(nextSort),
+          sort: encodeSort(getNextSort(field, sort, 'asc')),
         },
       }}
     >
