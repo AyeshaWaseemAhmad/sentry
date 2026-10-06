@@ -49,7 +49,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/attributes/`,
           title: t('Attributes'),
-          description: t("Browse a project's span, log, and metric attributes"),
+          description: t("Browse a project's log, metric, and span attributes"),
           keywords: [t('attribute'), t('attributes')],
           show: () => !!organization?.features?.includes('attribute-management'),
         },

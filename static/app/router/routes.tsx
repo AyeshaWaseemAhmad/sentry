@@ -517,14 +517,14 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'tags/',
-      name: t('Tags & Context'),
-      component: make(() => import('sentry/views/settings/projectTags')),
-    },
-    {
       path: 'attributes/',
       name: t('Attributes'),
       component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
+      path: 'tags/',
+      name: t('Tags & Context'),
+      component: make(() => import('sentry/views/settings/projectTags')),
     },
     {
       path: 'environments/',
