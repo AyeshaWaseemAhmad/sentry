@@ -114,8 +114,6 @@ function ProjectAttributesSettings() {
   const totalHits = Number(data?.headers['X-Hits'] ?? 0);
   const offset = parseCursor(cursor)?.offset ?? 0;
 
-  // useGetPaginationCaption assumes a page-index cursor offset, but this
-  // endpoint's GenericOffsetPaginator uses a row offset.
   const caption = attributes?.length
     ? tct('[start]-[end] of [total]', {
         start: (offset + 1).toLocaleString(),
