@@ -731,7 +731,7 @@ export function getSavedQueryTraceItemUrl({
   if (urlFunction) {
     return urlFunction({savedQuery, organization});
   }
-  // Invariant, only spans, logs, and metrics are currently supported.
+  // Invariant, only logs, metrics, and spans are currently supported.
   Sentry.captureMessage(
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
