@@ -1,7 +1,10 @@
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -16,7 +19,7 @@ describe('EnvironmentSelector', () => {
     ProjectsStore.loadInitialData(projects);
 
     render(
-      <Form initialData={{environment: ''}}>
+      <Form initialData={{environment: '', allProjects: true}}>
         <EnvironmentSelector />
       </Form>
     );
@@ -58,5 +61,40 @@ describe('EnvironmentSelector', () => {
 
     // Trigger label is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
+  });
+
+  it('preserves the configured environment while scoping suggestions to selected projects', async () => {
+    const {projects} = initializeOrg({
+      projects: [
+        {id: '1', slug: 'project-1', environments: ['prod'], isMember: true},
+        {id: '2', slug: 'project-2', environments: ['staging'], isMember: false},
+      ],
+    });
+    ProjectsStore.loadInitialData(projects);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [IssueStreamDetectorFixture({id: '10', projectId: '2'})],
+    });
+    const model = new FormModel();
+    model.setInitialData({detectorIds: ['10'], environment: 'configured'});
+
+    render(
+      <Form model={model}>
+        <EnvironmentSelector />
+      </Form>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'configured'}));
+
+    expect(await screen.findByRole('option', {name: 'staging'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'configured'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'prod'})).not.toBeInTheDocument();
+
+    act(() => model.setValue('projectIds', ['1']));
+
+    expect(screen.getByRole('option', {name: 'prod'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'staging'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'configured'})).toBeInTheDocument();
+    expect(model.getValue('environment')).toBe('configured');
   });
 });
