@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -127,7 +127,9 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 
 interface UseConversationResult {
   error: boolean;
+  isFetchingNextPage: boolean;
   isLoading: boolean;
+  loadNextPage: () => void;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
@@ -352,8 +354,6 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 100;
-
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
@@ -392,7 +392,7 @@ export function useConversation(
     hasNextPage,
     fetchNextPage,
     isLoading,
-    isError,
+    isLoadingError,
   } = useInfiniteQuery(
     apiOptions.asInfinite<ConversationApiResponse>()(
       '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
@@ -409,15 +409,11 @@ export function useConversation(
     )
   );
 
-  const currentNumberPages = data?.pages.length ?? 0;
-  const canFetchNextPage = Boolean(hasNextPage && currentNumberPages < MAX_PAGES);
-
-  useEffect(() => {
-    if (!isFetching && canFetchNextPage) {
-      fetchNextPage();
+  const loadNextPage = useCallback(() => {
+    if (hasNextPage && !isFetching && !isFetchingNextPage) {
+      void fetchNextPage();
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
+  }, [fetchNextPage, hasNextPage, isFetching, isFetchingNextPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -453,7 +449,9 @@ export function useConversation(
       stats: null,
       nodes: [],
       nodeTraceMap: new Map(),
+      isFetchingNextPage: false,
       isLoading: false,
+      loadNextPage,
       error: false,
       title: null,
     };
@@ -463,8 +461,10 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
-    error: isError,
+    isFetchingNextPage,
+    isLoading,
+    loadNextPage,
+    error: isLoadingError,
     title,
   };
 }
