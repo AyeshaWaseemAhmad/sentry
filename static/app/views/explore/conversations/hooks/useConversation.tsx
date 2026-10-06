@@ -127,6 +127,7 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 
 interface UseConversationResult {
   error: boolean;
+  hasNextPage: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   loadNextPage: () => void;
@@ -449,6 +450,7 @@ export function useConversation(
       stats: null,
       nodes: [],
       nodeTraceMap: new Map(),
+      hasNextPage: false,
       isFetchingNextPage: false,
       isLoading: false,
       loadNextPage,
@@ -461,6 +463,7 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
+    hasNextPage: Boolean(hasNextPage),
     isFetchingNextPage,
     isLoading,
     loadNextPage,
