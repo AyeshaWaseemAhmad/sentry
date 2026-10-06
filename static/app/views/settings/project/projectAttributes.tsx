@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
