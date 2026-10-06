@@ -127,7 +127,7 @@ describe('ProjectAttributes', () => {
     );
   });
 
-  it('shows the current page out of the total pages when results are paginated', async () => {
+  it('shows the current row range out of the total when results are paginated', async () => {
     MockApiClient.addMockResponse({
       url: attributesEndpoint,
       body: [
@@ -154,7 +154,7 @@ describe('ProjectAttributes', () => {
       },
     });
 
-    expect(await screen.findByText('Page 2 of 3')).toBeInTheDocument();
+    expect(await screen.findByText('26-26 of 60')).toBeInTheDocument();
   });
 
   it('requests the chosen dataset from the first page when a dataset is selected', async () => {

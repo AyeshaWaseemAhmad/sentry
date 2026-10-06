@@ -1,9 +1,8 @@
-import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -42,6 +41,16 @@ interface Attribute {
   };
 }
 
+const ATTRIBUTE_VALUE_TYPES: Record<Attribute['attributeType'], FieldValueType> = {
+  string: FieldValueType.STRING,
+  number: FieldValueType.NUMBER,
+  boolean: FieldValueType.BOOLEAN,
+  array: FieldValueType.ARRAY,
+};
+
+const ATTRIBUTES_PER_PAGE = 25;
+const ATTRIBUTES_STATS_PERIOD = '14d';
+
 const DATASET_LABELS: Record<AttributeDataset, string> = {
   spans: t('Spans'),
   logs: t('Logs'),
@@ -56,16 +65,6 @@ const DATASET_OPTIONS = [
   {value: 'logs', label: DATASET_LABELS.logs},
   {value: 'tracemetrics', label: DATASET_LABELS.tracemetrics},
 ];
-
-const ATTRIBUTE_VALUE_TYPES: Record<Attribute['attributeType'], FieldValueType> = {
-  string: FieldValueType.STRING,
-  number: FieldValueType.NUMBER,
-  boolean: FieldValueType.BOOLEAN,
-  array: FieldValueType.ARRAY,
-};
-
-const ATTRIBUTES_PER_PAGE = 25;
-const ATTRIBUTES_STATS_PERIOD = '14d';
 
 const SORT_FIELDS = ['name', 'type', 'datasets', 'description'] as const;
 
@@ -154,95 +153,89 @@ function ProjectAttributesSettings() {
 
   const attributes = data?.json;
   const totalHits = Number(data?.headers['X-Hits'] ?? 0);
-  const totalPages = Math.ceil(totalHits / ATTRIBUTES_PER_PAGE);
-  const currentPage =
-    Math.floor((parseCursor(cursor)?.offset ?? 0) / ATTRIBUTES_PER_PAGE) + 1;
+  const offset = parseCursor(cursor)?.offset ?? 0;
+
+  const caption = attributes?.length
+    ? tct('[start]-[end] of [total]', {
+        start: (offset + 1).toLocaleString(),
+        end: (offset + attributes.length).toLocaleString(),
+        total: totalHits.toLocaleString(),
+      })
+    : undefined;
 
   return (
     <SentryDocumentTitle title={t('Attributes')} projectSlug={project.slug}>
       <SettingsPageHeader
         title={t('Attributes')}
         subtitle={t(
-          'Browse the attributes sent with your spans, logs, and metrics in the last 14 days.'
+          'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
         )}
       />
-      <Stack gap="md">
-        <Flex gap="md" wrap="wrap">
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Dataset')} />
-            )}
-            value={dataset}
-            options={DATASET_OPTIONS}
-            onChange={option =>
-              updateQuery({
-                dataset: option.value === ALL_OPTION_VALUE ? undefined : option.value,
-              })
-            }
-          />
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
-            )}
-            value={type}
-            options={typeOptions}
-            onChange={option =>
-              updateQuery({
-                type: option.value === ALL_OPTION_VALUE ? undefined : option.value,
-              })
-            }
-          />
-          <Container flexGrow={1}>
-            <SearchBar
-              query={search}
-              placeholder={t('Search attribute names or descriptions')}
-              onSearch={query => updateQuery({search: query || undefined})}
-            />
-          </Container>
-        </Flex>
-        <SimpleTable
-          columns={COLUMNS}
-          header={
-            <SimpleTable.HeaderRow>
-              <SortableHeaderCell field="name" sort={sort}>
-                {t('Name')}
-              </SortableHeaderCell>
-              <SortableHeaderCell field="type" sort={sort}>
-                {t('Type')}
-              </SortableHeaderCell>
-              <SortableHeaderCell field="datasets" sort={sort}>
-                {t('Datasets')}
-              </SortableHeaderCell>
-              <SortableHeaderCell field="description" sort={sort}>
-                {t('Description')}
-              </SortableHeaderCell>
-            </SimpleTable.HeaderRow>
+      <Flex gap="md" wrap="wrap" paddingBottom="md">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Dataset')} />
+          )}
+          value={dataset}
+          options={DATASET_OPTIONS}
+          onChange={option =>
+            updateQuery({
+              dataset: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+            })
           }
-        >
-          {isPending && <SimpleTable.Loading />}
-          {isError && <SimpleTable.Error onRetry={refetch} />}
-          {attributes?.length === 0 && (
-            <SimpleTable.Empty>{t('No attributes found')}</SimpleTable.Empty>
+        />
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
           )}
-          {attributes?.map(attribute => (
-            <AttributeRow
-              key={`${attribute.name}:${attribute.attributeType}:${attribute.attributeSource.source_type}`}
-              attribute={attribute}
-            />
-          ))}
-        </SimpleTable>
-        <Stack align="end" gap="sm" paddingTop="md">
-          {totalPages > 0 && (
-            <Text variant="muted" size="sm">
-              {tct('Page [currentPage] of [totalPages]', {
-                currentPage,
-                totalPages,
-              })}
-            </Text>
-          )}
-          <PaginationNoMargin pageLinks={data?.headers.Link} />
-        </Stack>
-      </Stack>
+          value={type}
+          options={typeOptions}
+          onChange={option =>
+            updateQuery({
+              type: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+            })
+          }
+        />
+        <Container flexGrow={1}>
+          <SearchBar
+            query={search}
+            placeholder={t('Search attribute names or descriptions')}
+            onSearch={query => updateQuery({search: query || undefined})}
+          />
+        </Container>
+      </Flex>
+      <SimpleTable
+        columns={COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SortableHeaderCell field="name" sort={sort}>
+              {t('Name')}
+            </SortableHeaderCell>
+            <SortableHeaderCell field="type" sort={sort}>
+              {t('Type')}
+            </SortableHeaderCell>
+            <SortableHeaderCell field="datasets" sort={sort}>
+              {t('Datasets')}
+            </SortableHeaderCell>
+            <SortableHeaderCell field="description" sort={sort}>
+              {t('Description')}
+            </SortableHeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isPending && <SimpleTable.Loading />}
+        {isError && <SimpleTable.Error onRetry={refetch} />}
+        {attributes?.length === 0 && (
+          <SimpleTable.Empty>{t('No attributes found')}</SimpleTable.Empty>
+        )}
+        {attributes?.map(attribute => (
+          <AttributeRow
+            key={`${attribute.name}:${attribute.attributeType}:${attribute.attributeSource.source_type}`}
+            attribute={attribute}
+          />
+        ))}
+      </SimpleTable>
+      <Pagination pageLinks={data?.headers.Link} caption={caption} />
     </SentryDocumentTitle>
   );
 }
@@ -281,8 +274,6 @@ function SortableHeaderCell({
 }
 
 function AttributeRow({attribute}: {attribute: Attribute}) {
-  const {context} = attribute;
-
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
@@ -295,7 +286,9 @@ function AttributeRow({attribute}: {attribute: Attribute}) {
               <IconSentry size="xs" aria-label={t('Added by Sentry')} />
             </Tooltip>
           )}
-          {context?.isDeprecated && <Tag variant="warning">{t('Deprecated')}</Tag>}
+          {attribute.context?.isDeprecated && (
+            <Tag variant="warning">{t('Deprecated')}</Tag>
+          )}
         </Flex>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
@@ -311,9 +304,9 @@ function AttributeRow({attribute}: {attribute: Attribute}) {
         </Flex>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        {context?.brief ? (
+        {attribute.context?.brief ? (
           <Text>
-            <MarkedText as="span" inline text={context.brief} />
+            <MarkedText as="span" inline text={attribute.context.brief} />
           </Text>
         ) : (
           <Text variant="muted">—</Text>
@@ -330,7 +323,3 @@ export default function ProjectAttributes() {
     </Feature>
   );
 }
-
-const PaginationNoMargin = styled(Pagination)`
-  margin: 0;
-`;
