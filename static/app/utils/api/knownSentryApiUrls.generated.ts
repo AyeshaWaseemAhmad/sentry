@@ -413,6 +413,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/context/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/'
+  | '/organizations/$organizationIdOrSlug/trace-items/attributes/merged/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/validate/'
   | '/organizations/$organizationIdOrSlug/trace-items/metrics/'
