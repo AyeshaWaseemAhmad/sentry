@@ -180,6 +180,11 @@ class TestSearchMergedAttributes:
 
         assert [attribute["name"] for attribute in results] == ["http.route"]
 
+    def test_matches_descriptions_case_insensitively_when_searching(self) -> None:
+        results = search_merged_attributes(self.attributes, "MATCHED")
+
+        assert [attribute["name"] for attribute in results] == ["http.route"]
+
 
 class OrganizationTraceItemAttributesMergedEndpointTest(
     BaseSpansTestCase, SpanTestCase, OurLogTestCase, APITestCase
