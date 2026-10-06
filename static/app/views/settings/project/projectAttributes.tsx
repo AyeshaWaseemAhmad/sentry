@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -161,7 +162,7 @@ function ProjectAttributesSettings() {
               {tct('Page [currentPage] of [totalPages]', {currentPage, totalPages})}
             </Text>
           )}
-          <Pagination pageLinks={data?.headers.Link} />
+          <PaginationNoMargin pageLinks={data?.headers.Link} />
         </Stack>
       </Stack>
     </SentryDocumentTitle>
@@ -247,3 +248,7 @@ export default function ProjectAttributes() {
     </Feature>
   );
 }
+
+const PaginationNoMargin = styled(Pagination)`
+  margin: 0;
+`;
