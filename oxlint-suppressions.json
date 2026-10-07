@@ -1296,7 +1296,7 @@
   },
   "static/app/components/stream/group.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
+      "count": 4
     }
   },
   "static/app/components/tables/gridEditable/styles.tsx": {
@@ -2500,11 +2500,6 @@
     }
   },
   "static/app/views/issueDetails/sidebar/resources.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueList/actions/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
