@@ -7,10 +7,11 @@ import type {LocationDescriptor} from 'history';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {FLEX_JUSTIFY_CONTENT, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
+  COLUMN_ALIGN_JUSTIFY,
   type ColumnAlign,
   HeaderCellContent,
   type SortDirection,
@@ -54,6 +55,7 @@ interface HeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
   columnIndex?: number;
   divider?: boolean;
   handleSortClick?: (event: MouseEvent) => void;
+  interactive?: boolean;
   replace?: boolean;
   sort?: SortDirection;
   to?: LocationDescriptor;
@@ -98,11 +100,27 @@ function HeaderCell({
   children,
   sort,
   handleSortClick,
+  interactive,
   to,
   variant = 'default',
   divider = defined(children) ? true : false,
   ...props
 }: HeaderCellProps) {
+  if (interactive) {
+    return (
+      <ColumnHeaderCell
+        {...props}
+        align={align}
+        interactive
+        scope="col"
+        variant={variant}
+      >
+        {divider && <HeaderDivider />}
+        {children}
+      </ColumnHeaderCell>
+    );
+  }
+
   return (
     <ColumnHeaderCell
       {...props}
@@ -209,8 +227,8 @@ const HeaderDivider = styled('div')`
 `;
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'variant',
-})<{variant: HeaderCellVariant; align?: ColumnAlign}>`
+  shouldForwardProp: prop => prop !== 'interactive' && prop !== 'variant',
+})<{variant: HeaderCellVariant; align?: ColumnAlign; interactive?: boolean}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -246,6 +264,12 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
       display: none;
     }
   }
+
+  ${p =>
+    p.interactive &&
+    css`
+      justify-content: ${FLEX_JUSTIFY_CONTENT[COLUMN_ALIGN_JUSTIFY[p.align ?? 'left']]};
+    `}
 
   &[aria-sort] {
     color: ${p => p.theme.tokens.content.primary};
