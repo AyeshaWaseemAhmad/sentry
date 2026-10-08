@@ -161,21 +161,7 @@ class MonitorConfigSerializerResponse(TypedDict):
     alert_rule_id: int | None
 
 
-class MonitorAlertRuleTargetSerializerResponse(TypedDict):
-    targetIdentifier: int
-    targetType: str
-
-
-class MonitorAlertRuleSerializerResponse(TypedDict):
-    targets: list[MonitorAlertRuleTargetSerializerResponse]
-    environment: str
-
-
-class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: MonitorAlertRuleSerializerResponse
-
-
-class MonitorSerializerResponse(MonitorSerializerResponseOptional):
+class MonitorSerializerResponse(TypedDict):
     id: str
     name: str
     slug: str
@@ -196,9 +182,8 @@ class MonitorBulkEditResponse:
 
 @register(Monitor)
 class MonitorSerializer(Serializer[MonitorSerializerResponse]):
-    def __init__(self, environments=None, expand=None):
+    def __init__(self, environments=None):
         self.environments = environments
-        self.expand = expand
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
@@ -277,7 +262,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             item.id: serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
-        attrs = {
+        return {
             item: {
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
@@ -286,12 +271,6 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             }
             for item in item_list
         }
-
-        if self._expand("alertRule"):
-            for item in item_list:
-                attrs[item]["alertRule"] = item.get_issue_alert_rule_data()
-
-        return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorSerializerResponse:
         config = obj.config.copy()
@@ -312,16 +291,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             "owner": attrs["owner"],
         }
 
-        if self._expand("alertRule"):
-            result["alertRule"] = attrs["alertRule"]
-
         return result
-
-    def _expand(self, key) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
 
 
 class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
